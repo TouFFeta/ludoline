@@ -1,0 +1,382 @@
+/* LUDO — styles complémentaires manquants de la version complète */
+
+/* ---------- PANNEAUX ET HISTORIQUE ---------- */
+.last-result {
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-2);
+}
+.last-result-label { color: var(--text-dim); font-size: 10px; font-weight: 700; }
+.last-result-value { font-size: 22px; font-weight: 900; min-width: 24px; text-align: center; line-height: 1; }
+
+.new-game-button {
+    width: 100%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.new-game-button:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+
+.mini-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mini-action-button {
+    min-height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.mini-action-button:hover { background: var(--surface-2); color: var(--text); }
+
+.history-card { padding: 14px; }
+.panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.panel-heading strong { font-size: 11px; }
+.panel-heading span   { color: var(--text-dim); font-size: 10px; }
+
+.history-list {
+    max-height: 150px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
+}
+.history-list::-webkit-scrollbar { width: 4px; }
+.history-list::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
+
+.history-empty { color: var(--text-dim); font-size: 10px; text-align: center; padding: 10px 0; font-style: italic; }
+
+.history-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.history-entry:last-child { border-bottom: 0; }
+.history-entry-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
+.history-entry-dot.red    { background: var(--red);    color: var(--red); }
+.history-entry-dot.green  { background: var(--green);  color: var(--green); }
+.history-entry-dot.yellow { background: var(--yellow); color: var(--yellow); }
+.history-entry-dot.blue   { background: var(--blue);   color: var(--blue); }
+.history-entry-text { flex: 1; color: var(--text-muted); line-height: 1.4; }
+.history-entry-text strong { color: var(--text); font-weight: 700; }
+
+.players-card { padding: 14px; }
+.player-row {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+.player-row.active-player { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--green); }
+
+.player-color { width: 9px; height: 9px; border-radius: 50%; }
+.player-color.red    { background: var(--red);    box-shadow: 0 0 6px rgba(224,82,82,0.5); }
+.player-color.green  { background: var(--green);  box-shadow: 0 0 6px rgba(46,158,94,0.5); }
+.player-color.yellow { background: var(--yellow); box-shadow: 0 0 6px rgba(229,178,44,0.5); }
+.player-color.blue   { background: var(--blue);   box-shadow: 0 0 6px rgba(62,127,201,0.5); }
+
+.player-name { flex: 1; font-size: 11px; font-weight: 700; }
+.player-state { color: var(--text-dim); font-size: 10px; }
+
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    z-index: 200;
+    padding: 11px 18px;
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    background: var(--surface-3);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: var(--shadow-lg);
+    transform: translate(-50%, 80px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.25s, opacity 0.25s;
+}
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+.winner-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: grid;
+    place-items: center;
+    background: rgba(5, 8, 10, 0.82);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.winner-overlay[hidden] { display: none; }
+.winner-overlay.show { opacity: 1; }
+
+.winner-card {
+    width: min(380px, calc(100% - 32px));
+    padding: 32px 26px 26px;
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    background: var(--surface);
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    transform: scale(0.94);
+    transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.winner-overlay.show .winner-card { transform: scale(1); }
+
+.winner-medal { font-size: 48px; margin-bottom: 8px; }
+.winner-card h2 { font-size: 22px; margin-bottom: 4px; }
+.winner-subtitle { color: var(--text-muted); font-size: 12px; margin-bottom: 16px; }
+.winner-color-dot { width: 18px; height: 18px; border-radius: 50%; margin: 0 auto 20px; border: 3px solid rgba(255,255,255,0.12); }
+.winner-color-dot.red    { background: var(--red); }
+.winner-color-dot.green  { background: var(--green); }
+.winner-color-dot.blue   { background: var(--blue); }
+.winner-color-dot.yellow { background: var(--yellow); }
+.winner-card .primary-button { width: 100%; margin-bottom: 8px; }
+
+.ghost-button {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.ghost-button:hover { background: var(--surface-2); color: var(--text); }
+
+.has-block { z-index: 10; }
+
+/* ---------- BONUS DE TOUR ---------- */
+.turn-bonus {
+    display: block;
+    margin: 8px 0 2px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--green-border);
+    background: var(--green-soft);
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.turn-bonus.show { opacity: 1; transform: translateY(0); }
+.turn-bonus[hidden] { display: none; }
+
+.turn-card.bonus-flash { animation: bonusFlash 1s ease-out; }
+
+@keyframes bonusFlash {
+    0%   { box-shadow: 0 0 0 0 var(--green-glow); }
+    35%  { box-shadow: 0 0 0 5px var(--green-glow); }
+    100%  { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+
+.block-marker {
+    position: absolute;
+    right: 1px;
+    bottom: 1px;
+    z-index: 30;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    display: grid;
+    place-items: center;
+    border: 2px solid white;
+    border-radius: 999px;
+    color: white;
+    font-size: 7px;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+.block-marker.red    { background: var(--red); }
+.block-marker.green  { background: var(--green); }
+.block-marker.yellow { background: var(--yellow); color: #5F4A05; }
+.block-marker.blue   { background: var(--blue); }
+
+@keyframes legalTokenPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.12); }
+}
+
+@media (max-width: 960px) {
+    .hero {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding-top: 44px;
+        text-align: center;
+    }
+    .hero-content { max-width: 680px; margin: 0 auto; }
+    .hero-description { margin-left: auto; margin-right: auto; }
+    .hero-actions, .hero-features { justify-content: center; display: flex; }
+    .hero-board-container { min-height: 380px; }
+
+    .game-layout { grid-template-columns: 1fr; }
+    .game-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .turn-card, .new-game-button, .mini-actions, .history-card, .players-card { grid-column: 1 / -1; }
+    .board-wrapper { width: min(680px, 100%); margin: 0 auto; }
+    .future-section { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+    :root { --nav-height: 52px; }
+    .navbar-inner { width: calc(100% - 12px); }
+    .brand-text, .nav-username { display: none; }
+    .main-nav { gap: 1px; }
+    .nav-button { padding: 6px 8px; font-size: 11px; }
+    .soon-badge { display: none; }
+
+    .hero { width: calc(100% - 20px); padding: 36px 0 40px; min-height: auto; }
+    .hero h1 { font-size: 44px; }
+    .mini-board { width: 240px; }
+
+    .modes-section, .future-section { width: calc(100% - 20px); }
+    .mode-grid { grid-template-columns: 1fr; }
+    .future-section { margin-bottom: 36px; padding: 20px; }
+
+    .game-page { width: calc(100% - 8px); padding-top: 8px; }
+    .game-header { grid-template-columns: 1fr auto; }
+    .game-title { grid-column: 1 / -1; grid-row: 1; justify-content: center; margin-bottom: 8px; }
+    .back-button { grid-column: 1; grid-row: 2; }
+    .game-actions { grid-column: 2; grid-row: 2; }
+
+    .board-frame { padding: 6px; border-radius: 10px; }
+    .game-panel { display: flex; }
+    .dice-cube { width: 96px; height: 96px; }
+    .dice-face { padding: 12px; border-radius: 16px; }
+    .pip { max-width: 14px; max-height: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    .game-token.legal-move .token { animation: none; }
+    .game-token { transition: none !important; }
+    .token.hopping, .token.picked, .token.exiting-base, .token.landing,
+    .token.hit, .token.captured, .token.arrived, .token.shielded { animation: none; }
+    .dice-cube.settled { animation: none; }
+    .turn-card.bonus-flash { animation: none; }
+    .dice-cube.rolling { animation: none; }
+}
+
+/* ============================================================
+   BOTS — badges, niveau et tour du bot
+   ============================================================ */
+
+.mode-status.local { background: rgba(229, 178, 44, 0.12); color: var(--yellow); }
+
+.bot-level-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.bot-level-label {
+    margin-right: 4px;
+    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+.bot-level-button {
+    padding: 6px 13px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.bot-level-button:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+.bot-level-button.active {
+    border-color: var(--green-border);
+    background: var(--green-soft);
+    color: var(--green-hover);
+}
+
+/* Badge « BOT » dans la liste des joueurs */
+.bot-tag {
+    display: inline-block;
+    margin-left: 5px;
+    padding: 1px 5px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--surface-3);
+    color: var(--text-dim);
+    font-size: 8px;
+    font-weight: 850;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+}
+.player-row.active-player .bot-tag { color: var(--text-muted); }
+
+/* Avatar du bot dans la carte « tour actuel » */
+.player-avatar.bot { font-size: 16px; }
+
+/* Le bot réfléchit : signal discret, sans clignotement agressif. */
+.turn-card.bot-turn .dice-button { opacity: 0.55; }
+.turn-card.bot-turn .player-avatar {
+    animation: bot-thinking 1.6s ease-in-out infinite;
+}
+@keyframes bot-thinking {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .turn-card.bot-turn .player-avatar { animation: none; }
+}
