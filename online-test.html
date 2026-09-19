@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUDO — Test de room en ligne (étape 1)</title>
+<style>
+    body { font-family: system-ui, sans-serif; max-width: 560px; margin: 40px auto; padding: 0 16px;
+           background: #101410; color: #EDEDE6; }
+    h1 { font-size: 20px; }
+    p.note { color: #9AA39A; font-size: 13px; line-height: 1.6; }
+    fieldset { border: 1px solid #2A312A; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    legend { padding: 0 6px; font-size: 12px; color: #43A047; font-weight: 700; }
+    label { display: block; font-size: 12px; margin-bottom: 4px; color: #9AA39A; }
+    input { width: 100%; box-sizing: border-box; padding: 8px 10px; margin-bottom: 10px;
+            border-radius: 7px; border: 1px solid #2A312A; background: #171D17; color: #EDEDE6; }
+    button { padding: 9px 16px; border: 0; border-radius: 7px; background: #43A047; color: #fff;
+             font-weight: 700; cursor: pointer; margin-right: 8px; }
+    button.secondary { background: #2A312A; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #log { background: #0A0D0A; border: 1px solid #2A312A; border-radius: 8px; padding: 10px;
+           font-family: monospace; font-size: 12px; height: 220px; overflow-y: auto; white-space: pre-wrap; }
+    #players { list-style: none; padding: 0; }
+    #players li { padding: 6px 10px; border: 1px solid #2A312A; border-radius: 7px; margin-bottom: 6px;
+                  display: flex; justify-content: space-between; }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+    .dot.red{background:#D7263D}.dot.green{background:#2E7D32}.dot.blue{background:#1565C0}.dot.yellow{background:#F9A825}
+    .off { opacity: 0.4; }
+</style>
+</head>
+<body>
+
+<h1>🎲 LUDO — Test de room en ligne</h1>
+<p class="note">
+    Page de test isolée, indépendante du site (elle ne touche ni <code>index.html</code>,
+    ni <code>script.js</code>, ni <code>style.css</code>). Elle sert uniquement à vérifier
+    que le serveur de rooms fonctionne : créer une partie, la rejoindre depuis un autre onglet,
+    et voir les deux joueurs reconnus des deux côtés.
+</p>
+
+<fieldset>
+    <legend>1. Connexion au serveur</legend>
+    <label for="serverUrl">Adresse du serveur</label>
+    <input id="serverUrl" value="http://localhost:3001">
+    <button id="connectButton">Se connecter</button>
+    <span id="connState">déconnecté</span>
+    <p class="note" style="margin-top:10px;margin-bottom:0;">
+        Identifiant de cet onglet : <code id="clientIdDisplay">—</code>
+        <button id="resetIdButton" class="secondary" style="padding:3px 8px;font-size:11px;">Nouvel identifiant</button>
+        <br>Deux onglets différents ont toujours des identifiants différents (voir le code : <code>sessionStorage</code>).
+        Le bouton ci-dessus sert seulement à simuler manuellement "un nouveau joueur" dans le même onglet, sans le rouvrir.
+    </p>
+</fieldset>
+
+<fieldset>
+    <legend>2. Créer ou rejoindre</legend>
+    <label for="playerName">Ton nom</label>
+    <input id="playerName" value="Joueur">
+    <button id="createButton" disabled>Créer une room</button>
+    <br><br>
+    <label for="roomIdInput">Identifiant de room (ex. LUDO-A7K29)</label>
+    <input id="roomIdInput" placeholder="LUDO-XXXXX">
+    <button id="joinButton" disabled class="secondary">Rejoindre</button>
+</fieldset>
+
+<fieldset>
+    <legend>3. État de la room</legend>
+    <p>Room : <strong id="roomIdDisplay">—</strong> · Statut : <span id="roomStatus">—</span></p>
+    <ul id="players"></ul>
+</fieldset>
+
+<fieldset>
+    <legend>Journal des événements</legend>
+    <div id="log"></div>
+</fieldset>
+
+<!-- Client Socket.io, chargé depuis un CDN : voir server/README.md pour lancer le serveur. -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+"use strict";
+
+/* Identifiant stable de CET ONGLET, utilisé comme "clientId" pour
+   reconnaître un joueur qui revient (même onglet rechargé).
+
+   IMPORTANT pour ce fichier de TEST : on utilise sessionStorage,
+   pas localStorage. localStorage est partagé par TOUS les onglets
+   d'un même navigateur (même origine) : si on l'utilisait ici,
+   ouvrir un deuxième onglet pour simuler un deuxième joueur lirait
+   le même identifiant que le premier, et le serveur reconnaîtrait
+   alors "le même joueur qui revient" au lieu d'accueillir un
+   nouveau joueur — c'est le bug qui vient d'être observé.
+   sessionStorage, lui, est propre à CHAQUE onglet : deux onglets du
+   même navigateur obtiennent donc bien deux identifiants différents,
+   ce qui permet de tester deux joueurs sans ouvrir deux navigateurs. */
+function idAppareil() {
+    let id = sessionStorage.getItem("ludo-client-id");
+    if (!id) {
+        id = "web-" + Math.random().toString(36).slice(2, 10);
+        sessionStorage.setItem("ludo-client-id", id);
+    }
+    return id;
+}
+
+const els = {
+    serverUrl: document.getElementById("serverUrl"),
+    connectButton: document.getElementById("connectButton"),
+    connState: document.getElementById("connState"),
+    clientIdDisplay: document.getElementById("clientIdDisplay"),
+    resetIdButton: document.getElementById("resetIdButton"),
+    playerName: document.getElementById("playerName"),
+    createButton: document.getElementById("createButton"),
+    joinButton: document.getElementById("joinButton"),
+    roomIdInput: document.getElementById("roomIdInput"),
+    roomIdDisplay: document.getElementById("roomIdDisplay"),
+    roomStatus: document.getElementById("roomStatus"),
+    players: document.getElementById("players"),
+    log: document.getElementById("log")
+};
+
+els.clientIdDisplay.textContent = idAppareil();
+
+els.resetIdButton.addEventListener("click", function () {
+    sessionStorage.removeItem("ludo-client-id");
+    els.clientIdDisplay.textContent = idAppareil();
+    log("Nouvel identifiant d'onglet généré : cet onglet sera vu comme un joueur différent.");
+});
+
+function log(texte) {
+    const heure = new Date().toLocaleTimeString();
+    els.log.textContent += "[" + heure + "] " + texte + "\n";
+    els.log.scrollTop = els.log.scrollHeight;
+}
+
+function afficherRoom(room) {
+    els.roomIdDisplay.textContent = room.roomId;
+    els.roomStatus.textContent = room.status;
+    els.players.innerHTML = "";
+    room.players.forEach(p => {
+        const li = document.createElement("li");
+        li.className = p.connected ? "" : "off";
+        li.innerHTML = '<span><span class="dot ' + p.color + '"></span>' + p.name + "</span><span>" + p.color + (p.connected ? "" : " · absent") + "</span>";
+        els.players.appendChild(li);
+    });
+}
+
+let socket = null;
+
+els.connectButton.addEventListener("click", function () {
+    /* Empêche les connexions en double si le bouton est cliqué
+       plusieurs fois : sans ça, d'anciens sockets restaient actifs
+       et déclenchaient des événements en double dans le journal. */
+    if (socket) {
+        socket.removeAllListeners();
+        socket.disconnect();
+        socket = null;
+    }
+
+    socket = io(els.serverUrl.value, { transports: ["websocket", "polling"] });
+
+    socket.on("connect", function () {
+        els.connState.textContent = "connecté (" + socket.id + ")";
+        els.createButton.disabled = false;
+        els.joinButton.disabled = false;
+        log("Connecté au serveur.");
+    });
+
+    socket.on("disconnect", function () {
+        els.connState.textContent = "déconnecté";
+        els.createButton.disabled = true;
+        els.joinButton.disabled = true;
+        log("Déconnecté du serveur.");
+    });
+
+    socket.on("connect_error", function (err) {
+        log("Erreur de connexion : " + err.message);
+    });
+
+    /* Ces événements sont diffusés à TOUS les joueurs de la room,
+       y compris celui qui vient de créer / rejoindre. */
+    socket.on("ROOM_CREATED", function (room) { log("ROOM_CREATED"); afficherRoom(room); });
+    socket.on("PLAYER_JOINED", function (room) { log("PLAYER_JOINED : " + room.players.length + " joueur(s)"); afficherRoom(room); });
+    socket.on("PLAYER_LEFT", function (room) { log("PLAYER_LEFT"); afficherRoom(room); });
+    socket.on("RECONNECTED", function (room) { log("RECONNECTED"); afficherRoom(room); });
+});
+
+els.createButton.addEventListener("click", function () {
+    socket.emit("ROOM_CREATE", { clientId: idAppareil(), name: els.playerName.value }, function (reponse) {
+        if (!reponse.ok) return log("Erreur : " + reponse.error);
+        log("Room créée : " + reponse.room.roomId + " — tu es " + reponse.you.color);
+        els.roomIdInput.value = reponse.room.roomId;
+        afficherRoom(reponse.room);
+    });
+});
+
+els.joinButton.addEventListener("click", function () {
+    const roomId = els.roomIdInput.value.trim().toUpperCase();
+    socket.emit("ROOM_JOIN", { roomId: roomId, clientId: idAppareil(), name: els.playerName.value }, function (reponse) {
+        if (!reponse.ok) return log("Erreur : " + reponse.error);
+        log((reponse.reconnected ? "Reconnecté à " : "Room rejointe : ") + reponse.room.roomId + " — tu es " + reponse.you.color);
+        afficherRoom(reponse.room);
+    });
+});
+</script>
+</body>
+</html>

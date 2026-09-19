@@ -53,10 +53,11 @@ const navPlay          = document.getElementById("navPlay");
 const navRanking       = document.getElementById("navRanking");
 const navEvents        = document.getElementById("navEvents");
 const navShop          = document.getElementById("navShop");
+const navLogin         = document.getElementById("navLogin");
 const navProfile       = document.getElementById("navProfile");
 const navNotifications = document.getElementById("navNotifications");
 
-const modeButtons      = document.querySelectorAll(".mode-button");
+const modeButtons      = document.querySelectorAll(".mode-tile");
 const botLevelButtons  = document.querySelectorAll(".bot-level-button");
 
 const ludoBoard        = document.getElementById("ludoBoard");
@@ -189,6 +190,13 @@ const DICE_PIP_PATTERNS = {
 
 let gameState = null;
 
+/* Identifiant de la partie en cours.
+   Chaque nouvelle partie l'incrémente : toute animation ou tout
+   déplacement lancé par une partie précédente s'interrompt aussitôt. */
+let partieId = 0;
+
+function partieActive(id) { return id === partieId; }
+
 const TOKEN_STATE = {
     BASE: "BASE",
     TRACK: "TRACK",
@@ -225,6 +233,7 @@ function createInitialState() {
         currentPlayerIndex: 0,
         diceValue: null,
         diceRolled: false,
+        isBotThinking: false,
         legalMoves: [],
         winner: null,
         isRolling: false,
@@ -544,7 +553,7 @@ function updateActionPanel() {
     const cestUnBot = estBot(color);
 
     /* Pendant tout le tour d'un bot, l'humain ne peut RIEN déclencher. */
-    diceButton.disabled = cestUnBot
+    diceButton.disabled = cestUnBot || gameState.isBotThinking
         || gameState.isRolling || gameState.isAnimatingMove || gameState.diceRolled;
 
     if (cestUnBot) {
@@ -908,7 +917,8 @@ function updateLegalMoveHighlights() {
 }
 
 function handleTokenSelection(color, tokenIndex) {
-    if (!gameState || gameState.winner || gameState.isRolling || gameState.isAnimatingMove) return;
+    if (!gameState || gameState.winner) return;
+    if (gameState.isRolling || gameState.isAnimatingMove || gameState.isBotThinking) return;
 
     if (estBot(currentPlayerColor())) {
         showToast("Le bot est en train de jouer.");
@@ -945,7 +955,7 @@ function getMovementPath(fromPosition, toPosition) {
     return path;
 }
 
-async function animateTokenMovement(token, fromPosition, toPosition) {
+async function animateTokenMovement(token, fromPosition, toPosition, idPartie) {
     const path = getMovementPath(fromPosition, toPosition);
 
     if (prefersReducedMotion()) {
@@ -969,6 +979,7 @@ async function animateTokenMovement(token, fromPosition, toPosition) {
 
     /* Déplacement normal : une case à la fois, chacune animée. */
     for (const position of path) {
+        if (!partieActive(idPartie)) return;
         const before = captureTokenRects();
         setTokenPosition(token, position);
         renderTokens();
@@ -979,12 +990,16 @@ async function animateTokenMovement(token, fromPosition, toPosition) {
 }
 
 async function deplacerPion(color, tokenIndex, targetPosition) {
+    if (!gameState || gameState.winner) return;
+
     const token = getToken(color, tokenIndex);
     if (!token) return;
 
     /* Dernière validation avant toute animation. */
     if (!isLegalMove(color, tokenIndex, gameState.diceValue)) return;
 
+    /* Toute la suite appartient à CETTE partie et à aucune autre. */
+    const idPartie = partieId;
     const fromPosition = token.position;
     const diceValue    = gameState.diceValue;
     const rolledSix    = gameState.lastRollWasSix;
@@ -996,7 +1011,8 @@ async function deplacerPion(color, tokenIndex, targetPosition) {
     updateLegalMoveHighlights();
 
     /* --- 4. Le pion se déplace --- */
-    await animateTokenMovement(token, fromPosition, targetPosition);
+    await animateTokenMovement(token, fromPosition, targetPosition, idPartie);
+    if (!partieActive(idPartie)) return;
 
     /* --- Historique du déplacement --- */
     if (fromPosition === -1) {
@@ -1016,6 +1032,7 @@ async function deplacerPion(color, tokenIndex, targetPosition) {
         showToast("Case protégée : capture impossible.");
         animateTokenBody(color, tokenIndex, "shielded", 500);
         await sleep(420);
+        if (!partieActive(idPartie)) return;
     }
 
     if (resultat.captures.length > 0) {
@@ -1031,6 +1048,7 @@ async function deplacerPion(color, tokenIndex, targetPosition) {
         });
         showToast(nomComplet(color) + " capture " + resultat.captures.length + " pion(s) !");
         await sleep(CAPTURE_RETURN_MS);
+        if (!partieActive(idPartie)) return;
     }
 
     /* --- 6. Arrivée du pion --- */
@@ -1038,6 +1056,7 @@ async function deplacerPion(color, tokenIndex, targetPosition) {
     if (vientDArriver) {
         animateTokenBody(color, tokenIndex, "arrived", ARRIVAL_MS);
         await sleep(ARRIVAL_MS);
+        if (!partieActive(idPartie)) return;
     }
 
     gameState.isAnimatingMove = false;
@@ -1154,7 +1173,8 @@ async function lancerDe(lancePourLeBot) {
     if (!gameState) return;
     if (gameState.isRolling || gameState.isAnimatingMove || gameState.diceRolled || gameState.winner) return;
 
-    const color = currentPlayerColor();
+    const color    = currentPlayerColor();
+    const idPartie = partieId;
 
     /* Un humain ne lance jamais le dé d'un bot, et inversement. */
     if (estBot(color) && lancePourLeBot !== true) return;
@@ -1180,10 +1200,13 @@ async function lancerDe(lancePourLeBot) {
 
         const timeline = buildDiceTimeline(DICE_ANIMATION_MS);
         for (const interval of timeline) {
+            if (!partieActive(idPartie)) return;
             setDiceFace(Math.floor(Math.random() * 6) + 1);
             await sleep(interval);
         }
     }
+
+    if (!partieActive(idPartie)) return;
 
     /* === 3. La face affichée est celle du moteur, toujours. === */
     setDiceFace(value);
@@ -1211,6 +1234,7 @@ async function lancerDe(lancePourLeBot) {
         showToast("Trois 6 d'affilée : le tour passe (aucun pion perdu).");
         setGameMessage("Trois 6 d'affilée : ce lancer est perdu, la partie continue normalement.");
         await sleep(1000);
+        if (!partieActive(idPartie)) return;
         passerAuJoueurSuivant();
         return;
     }
@@ -1230,6 +1254,7 @@ async function lancerDe(lancePourLeBot) {
         gameState.diceRolled = false;
         gameState.diceValue  = null;
         await sleep(800);
+        if (!partieActive(idPartie)) return;
 
         if (RULES.GARDER_LA_MAIN_SI_6_SANS_COUP && value === 6) {
             gameState.lastRollWasSix = false;
@@ -1278,9 +1303,15 @@ function hideWinnerOverlay() {
    ============================================================ */
 
 function recommencerPartie() {
+    /* 1. On invalide immédiatement tout ce qui tournait encore. */
+    partieId += 1;
+    annulerBot();
+    clearTimeout(toastTimer);
+    clearTimeout(bonusTimer);
+    if (toast) toast.classList.remove("show");
+
     hideWinnerOverlay();
     hideBonusBadge();
-    annulerBot();
     gameState = createInitialState();
     demarrerNouveauMatch();
 
@@ -1346,7 +1377,7 @@ function comingSoon(label) { showToast(label + " — bientôt disponible."); }
    21. ÉVÉNEMENTS
    ============================================================ */
 
-if (playNowButton)    playNowButton.addEventListener("click", function () { showGameScreen("1v1"); });
+if (playNowButton)    playNowButton.addEventListener("click", function () { showGameScreen("solo"); });
 if (backHomeButton)   backHomeButton.addEventListener("click", showHomeScreen);
 if (brandHome)        brandHome.addEventListener("click", showHomeScreen);
 if (navHome)          navHome.addEventListener("click", showHomeScreen);
@@ -1354,6 +1385,7 @@ if (navPlay)          navPlay.addEventListener("click", function () { showGameSc
 if (navRanking)       navRanking.addEventListener("click", () => comingSoon("Le classement"));
 if (navEvents)        navEvents.addEventListener("click", () => comingSoon("Les événements"));
 if (navShop)          navShop.addEventListener("click", () => comingSoon("La boutique"));
+if (navLogin)         navLogin.addEventListener("click", () => comingSoon("La connexion"));
 if (navProfile)       navProfile.addEventListener("click", () => comingSoon("Le profil"));
 if (navNotifications) navNotifications.addEventListener("click", () => comingSoon("Les notifications"));
 
@@ -1401,11 +1433,20 @@ if (helpButton)     helpButton.addEventListener("click", () => comingSoon("L'aid
    un bot. Changer qui joue quelle couleur = changer cette map.
    ------------------------------------------------------------ */
 
-const SEAT_TYPE = { HUMAN: "human", BOT: "bot" };
+/* Types de joueur.
+   ONLINE est réservé pour le futur multijoueur : la valeur existe déjà
+   pour que rien n'ait à être réécrit, mais AUCUN réseau n'est codé ici. */
+const SEAT_TYPE = { HUMAN: "human", BOT: "bot", ONLINE: "online" };
 
 const BOT_LEVELS = { EASY: "easy", NORMAL: "normal", HARD: "hard" };
 
 const GAME_MODES = {
+    "solo": {
+        id: "solo",
+        label: "Solo — 1 joueur contre 3 bots",
+        ranked: false,
+        seats: { red: "human", green: "bot", blue: "bot", yellow: "bot" }
+    },
     "four-players": {
         id: "four-players",
         label: "Partie locale à quatre joueurs",
@@ -1428,17 +1469,50 @@ const GAME_MODES = {
 
 /* Configuration du match en cours. Une seule source de vérité. */
 const MATCH_CONFIG = {
-    modeId:   "four-players",
-    label:    GAME_MODES["four-players"].label,
-    ranked:   false,
+    /* "local"  : partie jouée entièrement dans ce navigateur (aujourd'hui, toujours ce cas).
+       "online" : partie dont le serveur est la source de vérité (pas encore implémenté :
+                  ce champ existe déjà pour que rien n'ait à être réécrit le jour venu). */
+    gameMode: "local",
+
+    modeId:   "solo",
+    label:    GAME_MODES.solo.label,
+    ranked:   GAME_MODES.solo.ranked,
     botLevel: BOT_LEVELS.NORMAL,
-    seats:    Object.assign({}, GAME_MODES["four-players"].seats),
+    seats:    Object.assign({}, GAME_MODES.solo.seats),
     matchId:  null
 };
 
-/* Niveau propre à chaque bot : permet plus tard d'avoir
-   un bot facile et un bot difficile dans la même partie. */
+/* Vrai partout aujourd'hui : personne n'a encore codé le mode "online".
+   Le jour où il existera, ce sera le seul endroit à vérifier pour savoir
+   si le moteur local doit garder la main ou attendre le serveur. */
+function estPartieLocale() {
+    return MATCH_CONFIG.gameMode === "local";
+}
+
+/* Registre des joueurs de la partie en cours.
+   Une entrée par couleur : { color, type, name, level, remoteId }.
+   Demain, remplacer un bot par un joueur en ligne se résumera à
+   passer son type à SEAT_TYPE.ONLINE et à renseigner remoteId. */
+const MATCH_PLAYERS = {};
+
+/* Raccourci vers les seuls joueurs pilotés par l'IA. */
 const BOT_PLAYERS = {};
+
+function creerJoueur(color, type, level) {
+    return {
+        color:    color,
+        type:     type,
+        name:     (type === SEAT_TYPE.BOT) ? ("Bot " + PLAYERS[color].shortName) : PLAYERS[color].name,
+        level:    (type === SEAT_TYPE.BOT) ? level : null,
+        remoteId: null,
+        fixedLevel: false
+    };
+}
+
+function getPlayer(color) {
+    if (!MATCH_PLAYERS[color]) MATCH_PLAYERS[color] = creerJoueur(color, SEAT_TYPE.HUMAN, null);
+    return MATCH_PLAYERS[color];
+}
 
 function appliquerMode(modeId) {
     const mode = GAME_MODES[modeId];
@@ -1469,47 +1543,56 @@ function definirNiveauDesBots(level) {
 function definirNiveauDuBot(color, level) {
     if (!estBot(color)) return;
     if (level !== BOT_LEVELS.EASY && level !== BOT_LEVELS.NORMAL && level !== BOT_LEVELS.HARD) return;
-    synchroniserBots();
-    BOT_PLAYERS[color].level      = level;
-    BOT_PLAYERS[color].fixedLevel = true;
+    const joueur = getPlayer(color);
+    joueur.level      = level;
+    joueur.fixedLevel = true;
+    BOT_PLAYERS[color] = joueur;
 }
 
 function synchroniserBots() {
     PLAYER_ORDER.forEach(color => {
-        if (MATCH_CONFIG.seats[color] === SEAT_TYPE.BOT) {
-            BOT_PLAYERS[color] = {
-                color: color,
-                level: (BOT_PLAYERS[color] && BOT_PLAYERS[color].fixedLevel)
-                    ? BOT_PLAYERS[color].level
-                    : MATCH_CONFIG.botLevel,
-                fixedLevel: BOT_PLAYERS[color] ? BOT_PLAYERS[color].fixedLevel : false,
-                name: "Bot " + PLAYERS[color].shortName
-            };
-        } else {
-            delete BOT_PLAYERS[color];
-        }
+        const type    = (MATCH_CONFIG.seats && MATCH_CONFIG.seats[color]) || SEAT_TYPE.HUMAN;
+        const ancien  = MATCH_PLAYERS[color];
+        const niveau  = (ancien && ancien.fixedLevel) ? ancien.level : MATCH_CONFIG.botLevel;
+
+        const joueur = creerJoueur(color, type, niveau);
+        joueur.fixedLevel = !!(ancien && ancien.fixedLevel && type === SEAT_TYPE.BOT);
+        MATCH_PLAYERS[color] = joueur;
+
+        if (type === SEAT_TYPE.BOT) BOT_PLAYERS[color] = joueur;
+        else delete BOT_PLAYERS[color];
     });
 }
 
 function typeDeSiege(color) {
-    return (MATCH_CONFIG.seats && MATCH_CONFIG.seats[color]) || SEAT_TYPE.HUMAN;
+    return getPlayer(color).type;
 }
 
 function estBot(color) {
     return typeDeSiege(color) === SEAT_TYPE.BOT;
 }
 
+/* Un joueur « local » est pilote depuis cet appareil (humain ou bot). */
+function estLocal(color) {
+    return typeDeSiege(color) !== SEAT_TYPE.ONLINE;
+}
+
 function niveauDuBot(color) {
-    return (BOT_PLAYERS[color] && BOT_PLAYERS[color].level) || MATCH_CONFIG.botLevel;
+    return getPlayer(color).level || MATCH_CONFIG.botLevel;
 }
 
 /* Noms affichés : « Bot Vert » au lieu de « Joueur vert ». */
 function nomComplet(color) {
-    return estBot(color) ? ("Bot " + PLAYERS[color].shortName) : PLAYERS[color].name;
+    return getPlayer(color).name;
 }
 
 function nomCourt(color) {
     return estBot(color) ? ("Bot " + PLAYERS[color].shortName) : PLAYERS[color].shortName;
+}
+
+/* Nombre de joueurs humains, utile pour les libellés de l'interface. */
+function nombreHumains() {
+    return PLAYER_ORDER.filter(c => typeDeSiege(c) === SEAT_TYPE.HUMAN).length;
 }
 
 
@@ -1570,7 +1653,8 @@ const BOT_CONFIG = {
             sortieBase: 40, sortieUrgente: 22,
             progression: 0.10, avance: 1.2,
             caseSure: 0, creerBlocage: 0, garderBlocage: 0,
-            danger: 0, fuite: 0, pression: 0
+            danger: 0, fuite: 0, pression: 0,
+            opportunite: 0, quitteCaseSure: 0
         }
     },
     normal: {
@@ -1581,7 +1665,8 @@ const BOT_CONFIG = {
             sortieBase: 44, sortieUrgente: 30,
             progression: 0.16, avance: 1.6,
             caseSure: 16, creerBlocage: 18, garderBlocage: 12,
-            danger: 34, fuite: 26, pression: 3
+            danger: 34, fuite: 26, pression: 3,
+            opportunite: 5, quitteCaseSure: 8
         }
     },
     hard: {
@@ -1592,7 +1677,8 @@ const BOT_CONFIG = {
             sortieBase: 46, sortieUrgente: 38,
             progression: 0.22, avance: 1.8,
             caseSure: 22, creerBlocage: 28, garderBlocage: 20,
-            danger: 46, fuite: 34, pression: 5
+            danger: 46, fuite: 34, pression: 5,
+            opportunite: 9, quitteCaseSure: 12
         }
     }
 };
@@ -1628,6 +1714,22 @@ function adversairesDerriere(color, ringIndex, portee) {
         if (distance >= 1 && distance <= portee) total += 1;
     });
     return total;
+}
+
+/* Adversaires capturables depuis une case au prochain tour (1 à 6 cases devant,
+   hors cases protégées). Ne consulte aucun dé futur : uniquement des positions. */
+function ciblesAuProchainTour(color, position) {
+    if (!isCommonPosition(position)) return 0;
+    let cibles = 0;
+    for (let d = 1; d <= 6; d++) {
+        const suivante = position + d;
+        if (suivante > LAST_COMMON_POSITION) break;
+        const ring = getRingIndex(color, suivante);
+        if (isSafeRingIndex(ring)) continue;
+        if (pathIsBlocked(color, position, suivante)) break;
+        if (getRingOccupants(ring).some(t => t.color !== color)) cibles += 1;
+    }
+    return cibles;
 }
 
 /* Risque de se faire capturer sur une case donnée.
@@ -1697,6 +1799,10 @@ function analyserCoupBot(color, move) {
         casseBlocage: casseBlocage,
         dangerCible:  risqueDeCapture(color, move.to, creeBlocage),
         dangerDepart: risqueDeCapture(color, move.from, false),
+        ciblesFutures: ciblesAuProchainTour(color, move.to),
+        quitteCaseSure: isCommonPosition(move.from)
+            && isSafeRingIndex(getRingIndex(color, move.from))
+            && surParcours && !isSafeRingIndex(ringCible),
         pionsEnBase:  tokensOf(color).filter(t => t.state === TOKEN_STATE.BASE).length,
         pionsSurParcours: tokensOf(color).filter(t => t.state === TOKEN_STATE.TRACK).length,
         adversairesDerriere: surParcours ? adversairesDerriere(color, ringCible, 12) : 0
@@ -1757,6 +1863,14 @@ function scoreMove(color, move, level) {
     /* 8 + 10. Éviter une case dangereuse, fuir une case dangereuse. */
     score -= poids.danger * info.dangerCible;
     score += poids.fuite  * info.dangerDepart;
+
+    /* Bonus : pouvoir capturer au prochain tour depuis la case visée. */
+    score += poids.opportunite * info.ciblesFutures;
+
+    /* Malus : quitter une case protégée pour une case ordinaire sans rien y gagner. */
+    if (info.quitteCaseSure && info.captures.length === 0 && !info.creeBlocage) {
+        score -= poids.quitteCaseSure;
+    }
 
     return score;
 }
@@ -1829,6 +1943,7 @@ function annulerBot() {
     if (botTimer) clearTimeout(botTimer);
     botTimer   = null;
     botEnCours = false;
+    if (gameState) gameState.isBotThinking = false;
     if (turnCard) turnCard.classList.remove("bot-turn");
 }
 
@@ -1843,13 +1958,18 @@ function verifierTourBot() {
     if (botEnCours) return;                       /* le bot en cours se replanifiera lui-même */
     if (!gameState || gameState.winner) return;
 
-    if (gameState.isRolling || gameState.isAnimatingMove) {
+    if (gameState.isRolling || gameState.isAnimatingMove || gameState.isBotThinking) {
         planifierTourBot(220);
         return;
     }
 
     const color = currentPlayerColor();
-    if (!estBot(color)) return;
+    if (!estBot(color)) {
+        /* Filet de sécurité : si le tour revient à un humain, on garantit
+           que ses commandes sont bien réactivées, quoi qu'il se soit passé. */
+        updateActionPanel();
+        return;
+    }
 
     executeBotTurn(color);
 }
@@ -1873,6 +1993,7 @@ async function executeBotTurn(color) {
     const config = BOT_CONFIG[level] || BOT_CONFIG.normal;
 
     botEnCours = true;
+    gameState.isBotThinking = true;
 
     try {
         /* --- 1. Le bot prend le dé --- */
@@ -1915,10 +2036,21 @@ async function executeBotTurn(color) {
         console.error("LUDO — erreur pendant le tour du bot :", error);
     } finally {
         botEnCours = false;
+        if (gameState) gameState.isBotThinking = false;
+
         /* On ne retire le voyant que si le tour ne revient pas à un bot. */
         if (turnCard && (!gameState || gameState.winner || !estBot(currentPlayerColor()))) {
             turnCard.classList.remove("bot-turn");
         }
+
+        /* CAPITAL : le verrou vient d'être relâché, il faut redonner
+           la main à l'interface, sinon le bouton du dé reste grisé
+           pour le joueur humain qui suit. */
+        if (gameState && !gameState.winner) {
+            updatePlayerPanel();
+            updateActionPanel();
+        }
+
         if (seq === botSequence && gameState && !gameState.winner) planifierTourBot();
     }
 }
@@ -2052,6 +2184,50 @@ function runBotTests() {
         const duree = (typeof performance !== "undefined" ? performance.now() : Date.now()) - debut;
         assertRule(duree < 800, "le calcul du bot doit rester rapide (" + Math.round(duree) + " ms)");
         resultats.push("Performance : 300 décisions en " + Math.round(duree) + " ms");
+
+        /* TEST 11 — plus aucun bot n'agit après la victoire */
+        gameState = createInitialState();
+        gameState.currentPlayerIndex = 1;          /* vert = bot */
+        gameState.winner = "red";
+        verifierTourBot();
+        assertRule(botEnCours === false, "aucun bot ne doit démarrer après la victoire");
+        assertRule(botTimer === null, "aucun timer de bot ne doit rester après la victoire");
+        resultats.push("TEST 11 — les bots s'arrêtent dès qu'il y a un gagnant");
+
+        /* TEST 12 — plusieurs bots cohabitent */
+        assertRule(Object.keys(BOT_PLAYERS).length === 2, "le mode 1v1 doit contenir exactement 2 bots");
+        configurerSieges(GAME_MODES.solo.seats);
+        assertRule(Object.keys(BOT_PLAYERS).length === 3, "le mode solo doit contenir 3 bots");
+        assertRule(nombreHumains() === 1, "le mode solo doit contenir 1 humain");
+        resultats.push("TEST 12 — solo : 1 humain + 3 bots, 1v1 : 2 humains + 2 bots");
+
+        /* Verrou de réflexion : il doit toujours pouvoir être relâché */
+        gameState = createInitialState();
+        gameState.isBotThinking = true;
+        annulerBot();
+        assertRule(gameState.isBotThinking === false,
+            "le verrou de réflexion doit être relâché à l'annulation");
+        resultats.push("Le verrou isBotThinking ne peut jamais rester bloqué");
+
+        /* TEST 13 — une nouvelle partie remet tout à zéro */
+        const idAvant = partieId;
+        annulerBot();
+        assertRule(botTimer === null && botEnCours === false, "annulerBot doit tout couper");
+        gameState = createInitialState();
+        assertRule(gameState.tokens.every(t => t.position === -1), "tous les pions reviennent en base");
+        assertRule(gameState.history.length === 0, "l'historique est vidé");
+        assertRule(gameState.winner === null && gameState.diceRolled === false
+                && gameState.isBotThinking === false && gameState.isAnimatingMove === false,
+            "tous les verrous doivent être relâchés");
+        assertRule(partieId === idAvant, "l'identifiant de partie ne change qu'au vrai redémarrage");
+        resultats.push("TEST 13 — nouvelle partie : positions, verrous et bots réinitialisés");
+
+        /* Types de joueur prêts pour le multijoueur */
+        assertRule(getPlayer("red").type === SEAT_TYPE.HUMAN, "rouge doit être de type human");
+        assertRule(getPlayer("green").type === SEAT_TYPE.BOT, "vert doit être de type bot");
+        assertRule(SEAT_TYPE.ONLINE === "online", "le type online doit rester réservé");
+        assertRule(estLocal("red") && estLocal("green"), "tous les joueurs sont locaux en V1");
+        resultats.push("Structure player.type prête pour le multijoueur (human / bot / online)");
 
         console.log("%c✓ BOT LUDO — tous les tests passent", "color:#43A047;font-weight:bold");
         resultats.forEach(r => console.log("   ✓ " + r));
