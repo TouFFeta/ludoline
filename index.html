@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LUDO — Une nouvelle façon de jouer au Ludo en ligne.">
+    <title>LUDO — Le Ludo, autrement.</title>
+    <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="navbar-inner">
+        <button class="brand" id="brandHome" aria-label="Accueil">
+            <span class="brand-icon">L</span>
+            <span class="brand-text">LUDO</span>
+        </button>
+
+        <nav class="main-nav">
+            <button class="nav-button active" id="navHome">Accueil</button>
+            <button class="nav-button" id="navPlay">Jouer</button>
+            <button class="nav-button coming-soon" id="navRanking">Classement <span class="soon-badge">Bientôt</span></button>
+            <button class="nav-button coming-soon" id="navEvents">Événements <span class="soon-badge">Bientôt</span></button>
+            <button class="nav-button coming-soon" id="navShop">Boutique <span class="soon-badge">Bientôt</span></button>
+        </nav>
+
+        <div class="nav-right">
+            <button class="nav-icon-button" id="navNotifications" aria-label="Notifications">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            </button>
+            <button class="nav-profile" id="navProfile">
+                <span class="nav-avatar">Y</span>
+                <span class="nav-username">Profil</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main>
+<section id="homeScreen" class="screen active-screen">
+    <div class="hero">
+        <div class="hero-content">
+            <div class="eyebrow"><span class="status-dot"></span>L'expérience Ludo nouvelle génération</div>
+            <h1>Le Ludo,<br><span>autrement.</span></h1>
+            <p class="hero-description">Une expérience simple, rapide et compétitive. Joue au Ludo directement depuis ton navigateur.</p>
+            <div class="hero-actions">
+                <button class="primary-button large" id="playNowButton">
+                    <span>Jouer maintenant</span><span class="button-arrow">→</span>
+                </button>
+            </div>
+            <div class="hero-features">
+                <div class="mini-feature"><span class="feature-icon">⚡</span><div><strong>Rapide</strong><small>Directement en ligne</small></div></div>
+                <div class="mini-feature"><span class="feature-icon">♟</span><div><strong>Compétitif</strong><small>Classement à venir</small></div></div>
+            </div>
+        </div>
+        <div class="hero-board-container">
+            <div class="floating-card card-top"><span class="floating-dot green"></span>Partie locale</div>
+            <div class="mini-board">
+                <div class="mini-home red-home"></div>
+                <div class="mini-home green-home"></div>
+                <div class="mini-home yellow-home"></div>
+                <div class="mini-home blue-home"></div>
+                <div class="mini-center">
+                    <div class="mini-triangle red"></div>
+                    <div class="mini-triangle green"></div>
+                    <div class="mini-triangle yellow"></div>
+                    <div class="mini-triangle blue"></div>
+                </div>
+                <div class="mini-token token-red"></div>
+                <div class="mini-token token-green"></div>
+                <div class="mini-token token-yellow"></div>
+                <div class="mini-token token-blue"></div>
+            </div>
+            <div class="floating-card card-bottom"><span class="floating-dot green"></span>4 couleurs · 4 joueurs</div>
+        </div>
+    </div>
+
+    <section class="modes-section">
+        <div class="section-heading">
+            <div><span class="section-label">COMMENCER UNE PARTIE</span><h2>Choisis ton mode</h2></div>
+            <span class="section-count">3 modes</span>
+        </div>
+
+        <div class="bot-level-picker" role="group" aria-label="Niveau des bots">
+            <span class="bot-level-label">Niveau des bots</span>
+            <button class="bot-level-button" data-level="easy">Facile</button>
+            <button class="bot-level-button active" data-level="normal">Normal</button>
+            <button class="bot-level-button" data-level="hard">Difficile</button>
+        </div>
+
+        <div class="mode-grid">
+            <article class="mode-card">
+                <div class="mode-card-top"><div class="mode-icon">🤖</div><span class="mode-status available">Disponible</span></div>
+                <h3>1v1 avec bots</h3>
+                <p>Deux joueurs humains (rouge et bleu) accompagnés de deux bots (vert et jaune) pour remplir une partie à quatre couleurs.</p>
+                <button class="mode-button" data-mode="1v1">Choisir ce mode <span>→</span></button>
+            </article>
+            <article class="mode-card">
+                <div class="mode-card-top"><div class="mode-icon">🏆</div><span class="mode-status local">Version locale</span></div>
+                <h3>1v1 Classé</h3>
+                <p>Même format que le 1v1. Le résultat est enregistré en local, en attendant le classement en ligne.</p>
+                <button class="mode-button" data-mode="1v1-ranked">Choisir ce mode <span>→</span></button>
+            </article>
+            <article class="mode-card">
+                <div class="mode-card-top"><div class="mode-icon">👥</div><span class="mode-status available">Disponible</span></div>
+                <h3>Partie à quatre joueurs</h3>
+                <p>Partie classique locale : quatre couleurs, quatre pions par joueur, aucun bot.</p>
+                <button class="mode-button" data-mode="four-players">Voir le plateau <span>→</span></button>
+            </article>
+        </div>
+    </section>
+
+    <section class="future-section">
+        <div class="future-content">
+            <span class="section-label">PROCHAINEMENT</span>
+            <h2>Une plateforme qui va<br>évoluer avec ses joueurs.</h2>
+            <p>Profils, classement Elo, statistiques et multijoueur seront ajoutés progressivement.</p>
+        </div>
+        <div class="future-list">
+            <div class="future-item"><span>01</span><div><strong>Profils joueurs</strong><small>Identité et historique</small></div></div>
+            <div class="future-item"><span>02</span><div><strong>Classement Elo</strong><small>Parties classées</small></div></div>
+            <div class="future-item"><span>03</span><div><strong>Multijoueur</strong><small>Joue en ligne</small></div></div>
+        </div>
+    </section>
+</section>
+
+<section id="gameScreen" class="screen game-screen">
+    <div class="game-page">
+
+        <div class="game-header">
+            <button class="back-button" id="backHomeButton"><span>←</span> Retour</button>
+            <div class="game-title">
+                <span class="live-dot"></span>
+                <div>
+                    <span class="game-mode-label" id="gameModeLabel">Partie locale à quatre joueurs</span>
+                    <strong>Partie locale</strong>
+                </div>
+            </div>
+            <div class="game-actions">
+                <button class="small-action-button" id="restartButton" aria-label="Nouvelle partie">↻</button>
+            </div>
+        </div>
+
+        <div class="game-layout">
+            <div class="board-wrapper">
+                <div class="board-frame">
+                    <div id="ludoBoard" class="ludo-board" aria-label="Plateau de Ludo"></div>
+                </div>
+            </div>
+
+            <aside class="game-panel">
+
+                <div class="panel-card turn-card">
+                    <div class="turn-header">
+                        <span class="turn-label">TOUR ACTUEL</span>
+                        <span class="turn-color-indicator"></span>
+                    </div>
+                    <div class="player-info">
+                        <div class="player-avatar"><span>R</span></div>
+                        <div>
+                            <strong>Joueur rouge</strong>
+                            <small>À toi de jouer</small>
+                        </div>
+                    </div>
+
+                    <div class="turn-bonus" id="turnBonus" hidden>Encore un tour !</div>
+
+                    <div class="dice-tray">
+                        <div class="dice-cube" id="diceCube" data-value="1" aria-hidden="true">
+                            <div class="dice-face">
+                                <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+                                <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+                                <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <span class="sr-only" id="diceValueText" aria-live="polite"></span>
+
+                    <button class="dice-button" id="diceButton">
+                        <span class="dice-button-label">LANCER LE DÉ</span>
+                    </button>
+
+                    <div class="last-result">
+                        <span class="last-result-label">Dernier résultat</span>
+                        <span class="last-result-value" id="lastResultValue">—</span>
+                    </div>
+
+                    <p class="dice-message" id="diceMessage">Au tour du joueur rouge. Lance le dé.</p>
+                </div>
+
+                <button class="new-game-button" id="newGameButton">NOUVELLE PARTIE</button>
+
+                <div class="mini-actions">
+                    <button class="mini-action-button" id="soundButton" aria-label="Son">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        </svg>
+                    </button>
+                    <button class="mini-action-button" id="settingsButton" aria-label="Paramètres">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                    <button class="mini-action-button" id="helpButton" aria-label="Aide">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="panel-card history-card">
+                    <div class="panel-heading">
+                        <strong>Historique</strong>
+                        <span id="historyCount">0</span>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <div class="history-empty">Aucun événement.</div>
+                    </div>
+                </div>
+
+                <div class="panel-card players-card">
+                    <div class="panel-heading">
+                        <strong>Joueurs</strong>
+                        <span>4</span>
+                    </div>
+                    <div class="player-row" data-color="red">
+                        <span class="player-color red"></span>
+                        <span class="player-name">Joueur rouge</span>
+                        <span class="player-state">0/4</span>
+                    </div>
+                    <div class="player-row" data-color="green">
+                        <span class="player-color green"></span>
+                        <span class="player-name">Joueur vert</span>
+                        <span class="player-state">0/4</span>
+                    </div>
+                    <div class="player-row" data-color="blue">
+                        <span class="player-color blue"></span>
+                        <span class="player-name">Joueur bleu</span>
+                        <span class="player-state">0/4</span>
+                    </div>
+                    <div class="player-row" data-color="yellow">
+                        <span class="player-color yellow"></span>
+                        <span class="player-name">Joueur jaune</span>
+                        <span class="player-state">0/4</span>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+    </div>
+</section>
+</main>
+
+<div id="winnerOverlay" class="winner-overlay" hidden aria-hidden="true">
+    <div class="winner-card">
+        <div class="winner-medal">🏆</div>
+        <h2 id="winnerName">Joueur rouge</h2>
+        <p class="winner-subtitle">remporte la partie</p>
+        <div class="winner-color-dot" id="winnerColorDot"></div>
+        <button class="primary-button large" id="playAgainButton">Nouvelle partie</button>
+        <button class="ghost-button" id="backToHomeFromWin">Retour à l'accueil</button>
+    </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="script.js?v=4"></script>
+</body>
+</html>
